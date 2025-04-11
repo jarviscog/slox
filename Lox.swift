@@ -12,7 +12,7 @@ struct Lox {
         let args = CommandLine.arguments
         print(args)
         if args.count > 1 {
-            print("Useage slox [script]")
+            print("Usage slox [script]")
             return
         } else if args.count == 1 {
             runFile(path: args[1])
