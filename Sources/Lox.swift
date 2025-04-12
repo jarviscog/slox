@@ -1,9 +1,10 @@
 
 import Foundation
 
+@MainActor
 struct Lox {
 
-    static var hadError: Bool = false
+    private static var hadError: Bool = false
 
     static func main () {
 
@@ -15,14 +16,14 @@ struct Lox {
             print("Usage slox [script]")
             return
         } else if args.count == 2 {
-            self.runFile(path: args[1])
+            self.runFile(args[1])
         } else {
             self.runPrompt()
         }
     }
 
     // TODO throws IOException
-    static func runFile(path: String) {
+    static func runFile(_ path: String) {
         print("Running File...")
 
         let parse_result = try? String(contentsOf: URL(string: path)!, encoding: .utf8)
@@ -41,6 +42,9 @@ struct Lox {
                 if line == "ee" {
                     return
                 }
+                if line == "exit" {
+                    return
+                }
                 self.run(source: line)
             } else {
                 print("nil found")
@@ -51,22 +55,22 @@ struct Lox {
 
     static func run(source: String) {
 
-        print("Running source:")
-        print(source)
+        //print("Running source:")
+        //print(source)
 
         let scanner: Scanner = Scanner(source: source)
         let tokens: Array<Token> = scanner.scanTokens()
         for token in tokens { 
-            print(token)
+            print("TOKEN: \(token.toString())")
         }
 
     }
 
-    static func error(line: Int32, message: String) {
+    static func error(line: Int, message: String) {
         report(line: line, location: "", message: message)
     }
 
-    static func report(line: Int32, location: String, message: String) {
+    static func report(line: Int, location: String, message: String) {
         print("[line \(line)] Error \(location): \(message)")
         hadError = true
     }
