@@ -1,4 +1,32 @@
 
+private extension TokenType {
+    init?(keyword: String) {
+        let keywords: [String: TokenType] = [
+            "and": TokenType.AND,
+            "class": TokenType.CLASS,
+            "else": TokenType.ELSE,
+            "false": TokenType.FALSE,
+            "for": TokenType.FOR,
+            "fun": TokenType.FUN,
+            "if": TokenType.IF,
+            "nil": TokenType.NIL,
+            "or": TokenType.OR,
+            "print": TokenType.PRINT,
+            "return": TokenType.RETURN,
+            "super": TokenType.SUPER,
+            "this": TokenType.THIS,
+            "true": TokenType.TRUE,
+            "var": TokenType.VAR,
+            "while": TokenType.WHILE
+        ]
+        
+        guard let type = keywords[keyword]
+            else { return nil }
+        
+        self = type
+    }
+}
+
 class Scanner {
 
     private final var source: String
@@ -82,6 +110,8 @@ class Scanner {
         default:
             if (isDigit(c)) {
                 number()
+            } else if (isAlpha(c)) {
+                identifier()
             } else {
                 Lox.error(line: line, message: "Unexpected Character")
             }
@@ -103,6 +133,14 @@ class Scanner {
         let number = Double(number_as_string)
         addToken(TokenType.NUMBER, number)
 
+    }
+
+    func identifier() {
+        while (isAlphaNumeric(peek())) {advance()}
+
+        let text: String = String(self.source[start..<current])
+        let type: TokenType = TokenType(keyword: text) ?? TokenType.IDENTIFIER
+        addToken(type)
     }
 
     func peekNext() -> Character {
@@ -143,6 +181,16 @@ class Scanner {
 
     func isDigit(_ c: Character) -> Bool {
         return c >= "0" && c <= "9"
+    }
+
+    func isAlpha(_ c: Character) -> Bool {
+        return (c >= "a" && c <= "z") ||
+           (c >= "A" && c <= "Z") ||
+            c == "_";
+    }
+
+    func isAlphaNumeric(_ c: Character) -> Bool {
+        return ( isDigit(c) || isAlpha(c) )
     }
 
     func match(_ expected: Character) -> Bool {
