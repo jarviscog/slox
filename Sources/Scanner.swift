@@ -61,11 +61,88 @@ class Scanner {
         case ">":
             addToken(match("=") ? TokenType.GREATER_EQUAL : TokenType.GREATER)
             break;
+        case "/":
+            if(match("/") ) {
+                // A comment that goes until the end of the line
+                while (peek() != "\n" && !isAtEnd()) { advance() }
+            } else {
+                addToken(TokenType.SLASH)
+            }
+            break;
+        case " ": break;
+        case "\r": break;
+        case "\t": break;
+        case "\n": 
+            self.line += 1 
+            break;
+        case "\"":
+            string(); 
+            break;
+
         default:
-            Lox.error(line: line, message: "Unexpected Character")
-            break
+            if (isDigit(c)) {
+                number()
+            } else {
+                Lox.error(line: line, message: "Unexpected Character")
+            }
+            break;
 
         }
+    }
+
+    func number() {
+        while (isDigit(peek())) { advance() }
+
+        // Look for a fractional part
+        if (peek() == "." && isDigit(peekNext())) {
+            advance();
+            while(isDigit(peek())) {advance()}
+        }
+
+        let number_as_string = self.source[self.start..<self.current]
+        let number = Double(number_as_string)
+        addToken(TokenType.NUMBER, number)
+
+    }
+
+    func peekNext() -> Character {
+        let next: String.Index = self.source.index(after: self.current)
+        if (next > self.source.endIndex) {return "\0"}
+        return self.source[next]
+    }
+
+    @MainActor
+    private func string() {
+        while (peek() != "\"" && !isAtEnd()) {
+            if (peek() == "\n") {
+                self.line += 1
+            }
+            advance()
+        }
+
+        if (isAtEnd()) {
+            Lox.error(line: line, message: "Unterminated String")
+        }
+
+        // The closing ".
+        advance()
+
+        // Trim the surrounding quotes
+        let start_after = self.source.index(after: self.start)
+        let current_before = self.source.index(before: self.current)
+        let substring = self.source[start_after..<current_before]
+        let value = String(substring)
+
+        addToken(TokenType.STRING, value)
+    }
+
+    func peek() -> Character {
+        if(isAtEnd()) {return "\0"}
+        return self.source[self.current]
+    }
+
+    func isDigit(_ c: Character) -> Bool {
+        return c >= "0" && c <= "9"
     }
 
     func match(_ expected: Character) -> Bool {
@@ -92,13 +169,6 @@ class Scanner {
     }
 
     func addToken(_ type: TokenType, _ literal: Any?) {
-
-         //if let index = source.index(of: "cd") {
-             //let substring = source[..<index]   // ab
-             //let string = String(substring)
-             //print(string)  // "ab\n"
-         //}
-
         let substring = self.source[self.start..<self.current]
         let text = String(substring)
         // String text = source.substring(start, current);

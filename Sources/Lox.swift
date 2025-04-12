@@ -26,7 +26,10 @@ struct Lox {
     static func runFile(_ path: String) {
         print("Running File...")
 
-        let parse_result = try? String(contentsOf: URL(string: path)!, encoding: .utf8)
+        let fileURL = URL(fileURLWithPath: path)
+        let parse_result = try? String(contentsOf: fileURL, encoding: .utf8)
+
+        print(parse_result)
 
         if let contents = parse_result {
             print(contents)
