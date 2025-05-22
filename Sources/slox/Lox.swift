@@ -60,7 +60,6 @@ struct Lox {
 
         //print("Running source:")
         //print(source)
-
         let scanner: Scanner = Scanner(source: source)
         let tokens: Array<Token> = scanner.scanTokens()
         for token in tokens { 
