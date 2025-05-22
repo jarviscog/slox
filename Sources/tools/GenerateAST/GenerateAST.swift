@@ -20,7 +20,7 @@ struct GenerateAST {
         defineAst(outputDir: outputDir, baseName: "Expr", types: [
             "Binary   - left: Expr , binary_operator: Token , right: Expr ", // NOTE operator is a keyword in swift
             "Grouping - expression: Expr ",
-            "Literal  - value: Object ",
+            "Literal  - value: Any?",
             "Unary    - unary_operator: Token , right: Expr "
         ]);
     }
@@ -51,24 +51,23 @@ struct GenerateAST {
         do { 
             let fileHandle: FileHandle = try FileHandle(forWritingTo: fileURL)
             defer { fileHandle.closeFile() }
-            var contents: String = ""
 
             fileHandle.seekToEndOfFile()
-            contents = ("class " + baseName + " {\n")
-            try fileHandle.write(contentsOf: contents.data(using: .utf8)!)
-            fileHandle.seekToEndOfFile()
+            defineVisitor(fileHandle, baseName, types);
+            appendToFile(fileHandle, "class " + baseName + " {\n")
+            appendToFile(fileHandle, "\n")
+            appendToFile(fileHandle, "    func accept<V: ExprVisitor, R>(visitor: V) -> R where R == V.R {\n")
+            appendToFile(fileHandle, "        fatalError()\n")
+            appendToFile(fileHandle, "    }\n")
 
             for token_type: String in types { 
                 let className: String = token_type.components(separatedBy: "-")[0].trimmingCharacters(in: .whitespacesAndNewlines)
                 let fields: String = token_type.components(separatedBy: "-")[1].trimmingCharacters(in: .whitespacesAndNewlines)
                 defineType(fileHandle, baseName, className, fields)
-
             }
 
-            contents = ("}")
-            try fileHandle.write(contentsOf: contents.data(using: .utf8)!)
-            fileHandle.seekToEndOfFile()
 
+            appendToFile(fileHandle, "}\n")
         } 
         catch { 
             print("Error writing: \(error.localizedDescription)") 
@@ -76,42 +75,50 @@ struct GenerateAST {
     }
 
     static private func defineType(_ fileHandle: FileHandle, _ baseName: String, _ className: String, _ fieldList: String) {
-        do {
-            var contents: String = "  static class " + className + ": " + baseName + " {\n";
-            try fileHandle.write(contentsOf: contents.data(using: .utf8)!);
-            fileHandle.seekToEndOfFile();
+        appendToFile(fileHandle, "    class " + className + ": " + baseName + " {\n");
+        appendToFile(fileHandle, "        init" + "(" + fieldList + ") {\n");
 
-            contents = "    func " + className + "(" + fieldList + ") {\n";
-            try fileHandle.write(contentsOf: contents.data(using: .utf8)!);
-            fileHandle.seekToEndOfFile();
-
-            let fields = fieldList.components(separatedBy: ",");
-            for field: String in fields {
-                let name: String = field.components(separatedBy: ":")[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                contents = "        self." + name + " = " + name + "\n";
-                try fileHandle.write(contentsOf: contents.data(using: .utf8)!)
-                fileHandle.seekToEndOfFile()
-            }
-
-
-            contents = "    }\n";
-            try fileHandle.write(contentsOf: contents.data(using: .utf8)!);
-            fileHandle.seekToEndOfFile();
-
-            for field: String in fields {
-                contents = "    final var " + field + ";\n";
-                try fileHandle.write(contentsOf: contents.data(using: .utf8)!)
-                fileHandle.seekToEndOfFile()
-            }
-
-            contents = "}\n";
-            try fileHandle.write(contentsOf: contents.data(using: .utf8)!)
-            fileHandle.seekToEndOfFile()
-
-        } catch {
-            print("Error writing: \(error.localizedDescription)") 
+        let fields = fieldList.components(separatedBy: ",");
+        for field: String in fields {
+            let name: String = field.components(separatedBy: ":")[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            appendToFile(fileHandle, "            self." + name + " = " + name + "\n")
         }
+        appendToFile(fileHandle, "        }\n")
+
+        // Visitor pattern
+        appendToFile(fileHandle, "\n")
+        appendToFile(fileHandle, "        override func accept<V: ExprVisitor, R>(visitor: V) -> R where R == V.R {\n")
+        appendToFile(fileHandle, "            return visitor.visit" + className + baseName + "(self);\n")
+        appendToFile(fileHandle, "        }\n")
+
+        // Fields
+        for field: String in fields {
+            let field_trimmed: String = field.trimmingCharacters(in: .whitespacesAndNewlines)
+            appendToFile(fileHandle, "        let " + field_trimmed + ";\n")
+        }
+
+        appendToFile(fileHandle, "    }\n\n")
 
     }
 
+    static private func defineVisitor(_ fileHandle: FileHandle, _ baseName: String, _ types: Array<String>) {
+        appendToFile(fileHandle, "protocol ExprVisitor<R> {\n")
+        appendToFile(fileHandle, "  associatedtype R\n")
+
+        for type in types {
+            let typeName: String = type.components(separatedBy: "-")[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            let contents: String = "  func visit" + typeName + baseName + "(_ " + baseName.lowercased() + ": Expr." + typeName  + ") -> R;\n"
+            appendToFile(fileHandle, contents);
+        }
+        appendToFile(fileHandle, "}\n\n")
+    }
+
+    static func appendToFile(_ fileHandle: FileHandle, _ in_string: String) {
+        do {
+            try fileHandle.write(contentsOf: in_string.data(using: .utf8)!);
+            fileHandle.seekToEndOfFile();
+        } catch {
+            print("Error writing: \(error.localizedDescription)") 
+        }
+    }
 }
