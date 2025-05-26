@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 struct Lox {
 
-    private static var hadError: Bool = false
+    static var hadError: Bool = false
 
     static func main () {
 
@@ -16,14 +16,14 @@ struct Lox {
             print("Usage slox [script]")
             return
         } else if args.count == 2 {
-            self.runFile(args[1])
+            runFile(args[1])
         } else {
-            self.runPrompt()
+            runPrompt()
         }
     }
 
     // TODO throws IOException
-    static func runFile(_ path: String) {
+    private static func runFile(_ path: String) {
         print("Running File...")
 
         let fileURL = URL(fileURLWithPath: path)
@@ -37,7 +37,7 @@ struct Lox {
         }
     }
 
-    static func runPrompt() {
+    private static func runPrompt() {
         // TODO runPrompt
         while true {
             print("> ", terminator: "")
@@ -52,11 +52,11 @@ struct Lox {
             } else {
                 print("nil found")
             }
-            hadError = false
+            Lox.hadError = false
         }
     }
 
-    static func run(source: String) {
+    private static func run(source: String) {
 
         //print("Running source:")
         //print(source)
@@ -69,24 +69,24 @@ struct Lox {
     }
 
     static func error(line: Int, message: String) {
-        report(line: line, location: "", message: message)
+        Lox.report(line: line, location: "", message: message)
     }
 
-    static func report(line: Int, location: String, message: String) {
+    private static func report(line: Int, location: String, message: String) {
         print("[line \(line)] Error \(location): \(message)")
-        hadError = true
+        Lox.hadError = true
+    }
+
+    static func error(token: Token, message: String) {
+        if (token.type == TokenType.EOF) {
+            Lox.report(line: token.line, location: " at end", message: message)
+        } else {
+            Lox.report(line: token.line, location: " at '" + token.lexeme + "'", message: message)
+        }
     }
 
 
 }
-
-
-
-
-
-
-
-
 
 
 
