@@ -29,8 +29,6 @@ struct Lox {
         let fileURL = URL(fileURLWithPath: path)
         let parse_result = try? String(contentsOf: fileURL, encoding: .utf8)
 
-        print(parse_result)
-
         if let contents = parse_result {
             print(contents)
             self.run(source: contents)
@@ -84,7 +82,6 @@ struct Lox {
             Lox.report(line: token.line, location: " at '" + token.lexeme + "'", message: message)
         }
     }
-
 
 }
 

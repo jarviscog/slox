@@ -97,6 +97,7 @@ class Parser {
         return false
     }
 
+    @discardableResult
     private func consume(_ type: TokenType, _ message: String) -> Token {
         if self.check(type) { return self.advance(); }
         fatalError(message)
@@ -107,6 +108,7 @@ class Parser {
         return self.peek().type == type;
     }
 
+    @discardableResult
     private func advance() -> Token {
         if !self.isAtEnd() { self.current += 1; }
         return self.previous();
