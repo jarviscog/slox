@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 struct Lox {
 
-    static var hadError: Bool = false
+    static var hadError = false
 
     static func main () {
 
@@ -58,14 +58,14 @@ struct Lox {
 
     private static func run(source: String) {
 
-        //print("Running source:")
-        //print(source)
         let scanner: Scanner = Scanner(source: source)
         let tokens: Array<Token> = scanner.scanTokens()
-        for token in tokens { 
-            print("TOKEN: \(token.toString())")
+        let parser: Parser = Parser(tokens: tokens)
+        if let expr: Expr = parser.parse() {
+            if (self.hadError) { return }
+            print(AstPrinter().print(expr: expr))
         }
-
+        print("\n")
     }
 
     static func error(line: Int, message: String) {
