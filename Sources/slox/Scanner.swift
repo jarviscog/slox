@@ -220,8 +220,7 @@ class Scanner {
         let substring = self.source[self.start..<self.current]
         let text = String(substring)
         // String text = source.substring(start, current);
-        print("Adding token:")
-        print(text)
+        print("Adding token: [" + text + "]")
 
         tokens.append(
             Token(
