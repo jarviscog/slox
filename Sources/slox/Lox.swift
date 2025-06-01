@@ -4,7 +4,9 @@ import Foundation
 @MainActor
 struct Lox {
 
-    static var hadError = false
+    private static var interpreter: Interpreter = Interpreter()
+    static var hadError: Bool = false
+    static var hadRuntimeError: Bool = false
 
     static func main () {
 
@@ -33,6 +35,9 @@ struct Lox {
             print(contents)
             self.run(source: contents)
         }
+
+        if hadError { exit(65) }
+        if hadRuntimeError { exit(70) }
     }
 
     private static func runPrompt() {
@@ -59,15 +64,22 @@ struct Lox {
         let scanner: Scanner = Scanner(source: source)
         let tokens: Array<Token> = scanner.scanTokens()
         let parser: Parser = Parser(tokens: tokens)
+
         if let expr: Expr = parser.parse() {
             if (self.hadError) { return }
-            print(AstPrinter().print(expr: expr))
+            self.interpreter.interpret(expr: expr)
         }
         print("\n")
     }
 
     static func error(line: Int, message: String) {
         Lox.report(line: line, location: "", message: message)
+    }
+
+    static func runtimeError(_ runtime_error: RuntimeError) {
+
+        print(runtime_error.message + "\n[Line " + String(runtime_error.token.line) + "]")
+        self.hadRuntimeError = true
     }
 
     private static func report(line: Int, location: String, message: String) {
