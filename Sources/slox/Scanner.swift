@@ -51,10 +51,10 @@ class Scanner {
 
         tokens.append(
             Token(
-                type: TokenType.EOF,
-                lexeme: "",
-                literal: nil,
-                line: line
+                TokenType.EOF,
+                "",
+                nil,
+                line
             )
         )
 
@@ -224,10 +224,10 @@ class Scanner {
 
         tokens.append(
             Token(
-                type: type,
-                lexeme: text, 
-                literal: literal, 
-                line: line
+                type,
+                text, 
+                literal, 
+                line
             )
         )
     }

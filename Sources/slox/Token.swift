@@ -1,12 +1,12 @@
 
-class Token {
+struct Token: @unchecked Sendable {
 
-    final var type: TokenType
-    final var lexeme: String
-    final var literal: Any?
-    final var line: Int 
+    var type: TokenType
+    var lexeme: String
+    var literal: Any?
+    var line: Int 
 
-    init(type: TokenType, lexeme: String, literal: Any?, line: Int) {
+    init(_ type: TokenType, _ lexeme: String, _ literal: Any?, _ line: Int) {
     		self.type = type
     		self.lexeme = lexeme
     		self.literal = literal
