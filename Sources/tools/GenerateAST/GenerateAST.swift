@@ -29,7 +29,7 @@ struct GenerateAST {
     static private func defineAst(outputDir: String, baseName: String, types: Array<String>) {
         print("outputDir " + outputDir)
         print("baseName " + baseName)
-        let path: String = outputDir + "/" + baseName + ".swift"
+        let path: String = "\(outputDir)/\(baseName).swift"
         print("outputDir " + path)
         print(FileManager.default.currentDirectoryPath)
         let fileURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -54,9 +54,9 @@ struct GenerateAST {
 
             fileHandle.seekToEndOfFile()
             defineVisitor(fileHandle, baseName, types);
-            appendToFile(fileHandle, "class " + baseName + " {\n")
+            appendToFile(fileHandle, "class \(baseName) {\n")
             appendToFile(fileHandle, "\n")
-            appendToFile(fileHandle, "    func accept<V: ExprVisitor, R>(visitor: V) -> R where R == V.R {\n")
+            appendToFile(fileHandle, "    func accept<V: \(baseName)Visitor, R>(visitor: V) -> R where R == V.R {\n")
             appendToFile(fileHandle, "        fatalError()\n")
             appendToFile(fileHandle, "    }\n")
 
@@ -75,26 +75,26 @@ struct GenerateAST {
     }
 
     static private func defineType(_ fileHandle: FileHandle, _ baseName: String, _ className: String, _ fieldList: String) {
-        appendToFile(fileHandle, "    class " + className + ": " + baseName + " {\n");
-        appendToFile(fileHandle, "        init" + "(" + fieldList + ") {\n");
+        appendToFile(fileHandle, "    class \(className): \(baseName) {\n");
+        appendToFile(fileHandle, "        init" + "(\(fieldList)) {\n");
 
         let fields = fieldList.components(separatedBy: ",");
         for field: String in fields {
             let name: String = field.components(separatedBy: ":")[0].trimmingCharacters(in: .whitespacesAndNewlines)
-            appendToFile(fileHandle, "            self." + name + " = " + name + "\n")
+            appendToFile(fileHandle, "            self.\(name) = \(name)\n")
         }
         appendToFile(fileHandle, "        }\n")
 
         // Visitor pattern
         appendToFile(fileHandle, "\n")
-        appendToFile(fileHandle, "        override func accept<V: ExprVisitor, R>(visitor: V) -> R where R == V.R {\n")
-        appendToFile(fileHandle, "            return visitor.visit" + className + baseName + "(self);\n")
+        appendToFile(fileHandle, "        override func accept<V: \(baseName)Visitor, R>(visitor: V) -> R where R == V.R {\n")
+        appendToFile(fileHandle, "            return visitor.visit\(className)\(baseName)(self);\n")
         appendToFile(fileHandle, "        }\n")
 
         // Fields
         for field: String in fields {
             let field_trimmed: String = field.trimmingCharacters(in: .whitespacesAndNewlines)
-            appendToFile(fileHandle, "        let " + field_trimmed + ";\n")
+            appendToFile(fileHandle, "        let \(field_trimmed);\n")
         }
 
         appendToFile(fileHandle, "    }\n\n")
@@ -102,12 +102,12 @@ struct GenerateAST {
     }
 
     static private func defineVisitor(_ fileHandle: FileHandle, _ baseName: String, _ types: Array<String>) {
-        appendToFile(fileHandle, "protocol ExprVisitor<R> {\n")
+        appendToFile(fileHandle, "protocol \(baseName)Visitor<R> {\n")
         appendToFile(fileHandle, "  associatedtype R\n")
 
         for type in types {
             let typeName: String = type.components(separatedBy: "-")[0].trimmingCharacters(in: .whitespacesAndNewlines)
-            let contents: String = "  func visit" + typeName + baseName + "(_ " + baseName.lowercased() + ": Expr." + typeName  + ") -> R;\n"
+            let contents: String = "  func visit\(typeName)\(baseName)(_ \(baseName.lowercased()): Expr.\(typeName)) -> R;\n"
             appendToFile(fileHandle, contents);
         }
         appendToFile(fileHandle, "}\n\n")
