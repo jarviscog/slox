@@ -65,11 +65,10 @@ struct Lox {
         let tokens: Array<Token> = scanner.scanTokens()
         let parser: Parser = Parser(tokens: tokens)
 
-        if let expr: Expr = parser.parse() {
-            if (self.hadError) { return }
-            self.interpreter.interpret(expr: expr)
-        }
-        print("\n")
+        let statements: [Stmt] = try! parser.parse();
+        if (self.hadError) { return }
+        self.interpreter.interpret(statements: statements)
+        //print("\n")
     }
 
     static func error(line: Int, message: String) {

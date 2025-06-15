@@ -1,17 +1,17 @@
 
 
-class Interpreter: ExprVisitor {
+class Interpreter: ExprVisitor, StmtVisitor {
     typealias R = Any?
     init() {
 
     }
+    var environment: Environment = Environment();
 
     @MainActor
-    func interpret(expr: Expr) {
+    func interpret(statements: [Stmt]) {
         do {
-            let value: Any? = evaluate(expr)
-            if let value_str = value as? String {
-                print(stringify(value_str))
+            for statement in statements {
+                execute(stmt: statement)
             }
         } catch let error as RuntimeError {
             Lox.runtimeError(error)
@@ -31,13 +31,23 @@ class Interpreter: ExprVisitor {
 
         if expr.unary_operator.type == TokenType.MINUS {
             try? self.checkNumberOperand(expr.unary_operator, right)
-            return -(right as! Double);
+            return -(right as! Double)
         } else if expr.unary_operator.type == TokenType.BANG {
-            return !isTruthy(expr.right);
+            return !isTruthy(expr.right)
         }
-
-
         fatalError("Unreachable")
+    }
+
+    public func visitVariableExpr(_ expr: Expr.Variable) -> Any? {
+        // TODO Don't use '!'
+        return try! environment.get(name: expr.name)!
+    }
+
+    public func visitAssignmentExpr(_ expr: Expr.Assignment) -> Any? {
+        let value: Any? = evaluate(expr.value)
+        try? environment.assign(name: expr.name, value: value)
+        return value
+
     }
 
     public func checkNumberOperand(_ in_operator: Token, _ value: Any?) throws {
@@ -62,6 +72,48 @@ class Interpreter: ExprVisitor {
 
     private func evaluate(_ expr: Expr) -> Any? {
         return expr.accept(visitor: self)
+    }
+
+    private func execute(stmt: Stmt) {
+        stmt.accept(visitor: self)
+    }
+
+    public func executeBlock(statements: [Stmt], environment: Environment) {
+        let previous: Environment = self.environment
+        do {
+            self.environment = environment
+            for statement in statements {
+                execute(stmt: statement)
+            }
+
+        }
+        self.environment = previous 
+    }
+
+    public func visitBlockStmt(_ stmt: Stmt.Block) -> Any? {
+        executeBlock(statements: stmt.statements, environment: Environment(enclosing: environment))
+        return nil
+    }
+
+    public func visitExpressionStmt(_ stmt: Stmt.Expression) -> Any? {
+        evaluate(stmt.expression)
+    }
+
+    public func visitPrintStmt(_ stmt: Stmt.Print) -> Any? {
+        let value = evaluate(stmt.expression);
+        print(stringify(value));
+        return nil
+    }
+
+    public func visitVarStmt(_ stmt: Stmt.Var) -> Any? {
+        var value: Any? = nil;
+        if (stmt.initializer != nil) {
+            value = evaluate(stmt.initializer)
+        }
+    
+        environment.define(name: stmt.name.lexeme, value: value);
+        return nil;
+
     }
 
     public func visitBinaryExpr(_ expr: Expr.Binary) -> Any? {

@@ -5,6 +5,10 @@ class AstPrinter: ExprVisitor {
         return expr.accept(visitor: self)
     }
 
+    func visitAssignmentExpr(_ expr: Expr.Assignment) -> String {
+        return String(describing: expr.name)
+    }
+
     func visitBinaryExpr(_ expr: Expr.Binary) -> String {
         return self.parenthesize(expr.binary_operator.lexeme, expr.left, expr.right);
     }
@@ -20,6 +24,10 @@ class AstPrinter: ExprVisitor {
 
     func visitUnaryExpr(_ expr: Expr.Unary) -> String {
         return parenthesize(expr.unary_operator.lexeme, expr.right);
+    }
+
+    func visitVariableExpr(_ expr: Expr.Variable) -> String {
+        return String(describing: expr.name)
     }
 
   func parenthesize(_ name: String, _ exprs: Expr...) -> String {

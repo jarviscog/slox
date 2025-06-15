@@ -9,13 +9,97 @@ class Parser {
         self.tokens = tokens;
     }
 
-    func parse() -> Expr? {
-        return try? self.expression();
+    func parse() throws -> [Stmt] {
+        var statements: [Stmt] = [];
+        while !self.isAtEnd() {
+            // TODO Don't use '!'
+            try statements.append(declaration()!)
+        }
+        return statements
     }
 
     private func expression() throws -> Expr {
-        return try self.equality()
+        return try assignment()
     }
+
+    private func declaration() throws -> Stmt? {
+        
+        do {
+            if match(TokenType.VAR) { return try varDeclaration() }
+            return try statement()
+
+        } catch let error as ParseError {
+            synchronize()
+            return nil;
+        }
+
+    }
+
+    private func statement() throws -> Stmt {
+        if match(TokenType.PRINT) { return try printStatement() };
+        if match(TokenType.LEFT_BRACE) { return Stmt.Block(statements: try block()) };
+
+        return try expressionStatement();
+    }
+
+    private func printStatement() throws -> Stmt {
+        let value: Expr = try expression();
+        consume(TokenType.SEMICOLON, "Expect ';' after value.")
+        return Stmt.Print(expression: value)
+    }
+
+    private func varDeclaration() throws -> Stmt {
+        let tokenName = consume(TokenType.IDENTIFIER, "Expect Variable Name");
+        var initializer: Expr = Expr.Literal(value: nil);
+        if match(TokenType.EQUAL) {
+            initializer = try expression();
+        }
+
+        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration")
+        return Stmt.Var(name: tokenName, initializer: initializer)
+
+    }
+
+    private func expressionStatement() throws -> Stmt {
+        let value: Expr = try expression();
+        consume(TokenType.SEMICOLON, "Expect ';' after value.")
+        return Stmt.Expression(expression: value)
+    }
+
+    private func block() throws -> [Stmt] {
+        var statements: [Stmt] = [Stmt]()
+
+        while(!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+
+            // TODO: Is this the right way to append? 
+            //  Should I append an empty statement if declaration returns nil? 
+            if let stmt = try declaration() {
+                statements.append(stmt)
+            }
+        }
+
+        consume(TokenType.RIGHT_BRACE, "Expect '}' at end.")
+        return statements
+    }
+
+    private func assignment() throws -> Expr {
+        let expr: Expr = try equality();
+
+        if match(TokenType.EQUAL) {
+            let equals: Token = previous();
+            let value: Expr = try assignment();
+            if ( type(of: expr) == Expr.Variable.self) {
+                let name: Token = (expr as! Expr.Variable).name
+                return Expr.Assignment(name: name, value: value)
+            }
+
+            error(equals, "Invalid Assignment target")
+
+        }
+        return expr
+    }
+
+    
 
     private func equality() throws -> Expr {
         var expr = try self.comparison()
@@ -77,6 +161,9 @@ class Parser {
 
         if (self.match(TokenType.NUMBER, TokenType.STRING)) {
             return Expr.Literal(value: self.previous().literal)
+        }
+        if (self.match(TokenType.IDENTIFIER)) {
+            return Expr.Variable(name: previous());
         }
         if (self.match(TokenType.LEFT_PAREN)) {
             let expr: Expr = try self.expression();

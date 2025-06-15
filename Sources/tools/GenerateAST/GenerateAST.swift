@@ -18,10 +18,19 @@ struct GenerateAST {
 
         let outputDir: String = args[1];
         defineAst(outputDir: outputDir, baseName: "Expr", types: [
-            "Binary   - left: Expr , binary_operator: Token , right: Expr ", // NOTE operator is a keyword in swift
-            "Grouping - expression: Expr ",
-            "Literal  - value: Any?",
-            "Unary    - unary_operator: Token , right: Expr "
+            "Assignment  - name: Token, value: Expr",
+            "Binary      - left: Expr , binary_operator: Token , right: Expr ", // NOTE operator is a keyword in swift
+            "Grouping    - expression: Expr ",
+            "Literal     - value: Any?",
+            "Unary       - unary_operator: Token , right: Expr ",
+            "Variable    - name: Token",
+        ]);
+
+        defineAst(outputDir: outputDir, baseName: "Stmt", types: [
+            "Block       -  statements: [Stmt]",
+            "Expression  -  expression: Expr",
+            "Print       -  expression: Expr",
+            "Var         -  name: Token, initializer: Expr",
         ]);
     }
 
