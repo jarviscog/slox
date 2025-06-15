@@ -107,7 +107,7 @@ struct GenerateAST {
 
         for type in types {
             let typeName: String = type.components(separatedBy: "-")[0].trimmingCharacters(in: .whitespacesAndNewlines)
-            let contents: String = "  func visit\(typeName)\(baseName)(_ \(baseName.lowercased()): Expr.\(typeName)) -> R;\n"
+            let contents: String = "  func visit\(typeName)\(baseName)(_ \(baseName.lowercased()): \(baseName).\(typeName)) -> R;\n"
             appendToFile(fileHandle, contents);
         }
         appendToFile(fileHandle, "}\n\n")
