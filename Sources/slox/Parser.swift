@@ -36,10 +36,66 @@ class Parser {
     }
 
     private func statement() throws -> Stmt {
+        if match(TokenType.FOR) { return try forStatement() };
+        if match(TokenType.IF) { return try ifStatement() };
         if match(TokenType.PRINT) { return try printStatement() };
+        if match(TokenType.WHILE) { return try whileStatement() };
         if match(TokenType.LEFT_BRACE) { return Stmt.Block(statements: try block()) };
 
         return try expressionStatement();
+    }
+    
+    private func forStatement() throws -> Stmt {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after for.")
+
+        let initializer: Stmt?
+        if match(TokenType.SEMICOLON) {
+            initializer = nil;
+        } else if match(TokenType.VAR) {
+            initializer = try varDeclaration()
+        } else {
+            initializer = try expressionStatement()
+        }
+
+        var condition: Expr? = nil;
+        if !check(TokenType.SEMICOLON) {
+            condition = try expression()
+        }
+        consume(TokenType.SEMICOLON, "Expect ';' after loop condition")
+
+        var increment: Expr? = nil;
+        if !check(TokenType.RIGHT_PAREN) {
+            increment = try expression()
+        }
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses")
+        var body: Stmt = try statement()
+
+        if (increment != nil) {
+            body = Stmt.Block(statements: [body, Stmt.Expression(expression: increment!)])
+        }
+
+        if (condition == nil) {
+            condition = Expr.Literal(value: true)
+        }
+        body = Stmt.While(condition: condition!, body: body)
+
+        if let initializer = initializer {
+            body = Stmt.Block(statements: [initializer, body])
+        }
+
+        return body
+    }
+
+    private func ifStatement() throws -> Stmt {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after if")
+        let condition: Expr = try expression()
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition")
+        let thenBranch: Stmt = try statement()
+        var elseBranch: Stmt? = nil;
+        if (match(TokenType.ELSE)) {
+            elseBranch = try statement()
+        }
+        return Stmt.If(condition: condition, thenBranch: thenBranch, elseBranch: elseBranch!)
     }
 
     private func printStatement() throws -> Stmt {
@@ -58,6 +114,14 @@ class Parser {
         consume(TokenType.SEMICOLON, "Expect ';' after variable declaration")
         return Stmt.Var(name: tokenName, initializer: initializer)
 
+    }
+
+    private func whileStatement() throws -> Stmt {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.")
+        let condition: Expr = try expression()
+        consume(TokenType.LEFT_PAREN, "Expect ')' after condition.")
+        let body: Stmt = try statement()
+        return Stmt.While(condition: condition, body: body)
     }
 
     private func expressionStatement() throws -> Stmt {
@@ -83,7 +147,7 @@ class Parser {
     }
 
     private func assignment() throws -> Expr {
-        let expr: Expr = try equality();
+        let expr: Expr = try or()
 
         if match(TokenType.EQUAL) {
             let equals: Token = previous();
@@ -99,6 +163,26 @@ class Parser {
         return expr
     }
 
+    private func or() throws -> Expr {
+        var expr: Expr = try and()
+
+        while match(TokenType.OR) {
+            let logical_operator: Token = previous()
+            let right: Expr = try and()
+            expr = Expr.Logical(left: expr, logical_operator: logical_operator, right: right)
+        }
+        return expr
+    }
+
+    private func and() throws -> Expr {
+        var expr: Expr = try equality();
+        while match(TokenType.AND) {
+            let logical_operator: Token = previous()
+            let right: Expr = try equality()
+            expr = Expr.Logical(left: expr, logical_operator: logical_operator, right: right)
+        }
+        return expr
+    }
     
 
     private func equality() throws -> Expr {

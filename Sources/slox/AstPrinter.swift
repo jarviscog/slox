@@ -30,6 +30,10 @@ class AstPrinter: ExprVisitor {
         return String(describing: expr.name)
     }
 
+    func visitLogicalExpr(_ expr: Expr.Logical) -> String {
+        return "\(expr.left) \(expr.logical_operator) \(expr.right)"
+    }
+
   func parenthesize(_ name: String, _ exprs: Expr...) -> String {
     var ret_string: String = "";
 

@@ -22,6 +22,7 @@ struct GenerateAST {
             "Binary      - left: Expr , binary_operator: Token , right: Expr ", // NOTE operator is a keyword in swift
             "Grouping    - expression: Expr ",
             "Literal     - value: Any?",
+            "Logical     - left: Expr, logical_operator: Token, right: Expr",
             "Unary       - unary_operator: Token , right: Expr ",
             "Variable    - name: Token",
         ]);
@@ -29,8 +30,10 @@ struct GenerateAST {
         defineAst(outputDir: outputDir, baseName: "Stmt", types: [
             "Block       -  statements: [Stmt]",
             "Expression  -  expression: Expr",
+            "If          -  condition: Expr, thenBranch: Stmt, elseBranch: Stmt",
             "Print       -  expression: Expr",
             "Var         -  name: Token, initializer: Expr",
+            "While       -  condition: Expr, body: Stmt",
         ]);
     }
 

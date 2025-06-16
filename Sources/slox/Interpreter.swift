@@ -22,6 +22,19 @@ class Interpreter: ExprVisitor, StmtVisitor {
         return expr.value;
     }
 
+    public func visitLogicalExpr(_ expr: Expr.Logical) -> Any? {
+        let left: Any? = evaluate(expr.left)
+
+        if (expr.logical_operator.type == TokenType.OR) {
+            if (isTruthy(expr.left)) { return left }
+
+        } else {
+            if (!isTruthy(expr.left)) { return left }
+        }
+
+        return evaluate(expr.right)
+    }
+
     public func visitGroupingExpr(_ expr: Expr.Grouping) -> Any? {
         return self.evaluate(expr.expression);
     }
@@ -99,6 +112,15 @@ class Interpreter: ExprVisitor, StmtVisitor {
         evaluate(stmt.expression)
     }
 
+    public func visitIfStmt(_ stmt: Stmt.If) -> Any? {
+        if (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt: stmt.thenBranch)
+        } else {
+            execute(stmt: stmt.elseBranch)
+        }
+        return nil;
+    }
+
     public func visitPrintStmt(_ stmt: Stmt.Print) -> Any? {
         let value = evaluate(stmt.expression);
         print(stringify(value));
@@ -110,10 +132,15 @@ class Interpreter: ExprVisitor, StmtVisitor {
         if (stmt.initializer != nil) {
             value = evaluate(stmt.initializer)
         }
-    
         environment.define(name: stmt.name.lexeme, value: value);
         return nil;
+    }
 
+    public func visitWhileStmt(_ stmt: Stmt.While) -> Any? {
+        while (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt: stmt.body)
+        }
+        return nil
     }
 
     public func visitBinaryExpr(_ expr: Expr.Binary) -> Any? {
@@ -176,7 +203,7 @@ class Interpreter: ExprVisitor, StmtVisitor {
         if (value is Double) {
             return String(format: "%f", value as! Double)
         }
-        return value as! String
+        return String(describing: value)
     }
 
 
