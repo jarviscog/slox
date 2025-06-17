@@ -144,41 +144,53 @@ class Interpreter: ExprVisitor, StmtVisitor {
     }
 
     public func visitBinaryExpr(_ expr: Expr.Binary) -> Any? {
-        let left: Any? = self.evaluate(expr.left)
-        let right: Any? = self.evaluate(expr.left)
+        let left_optional: Any? = self.evaluate(expr.left)
+        let right_optional: Any? = self.evaluate(expr.right)
 
-        if expr.binary_operator.type  == TokenType.MINUS {
-            try? checkNumberOperands(expr.binary_operator, left, right)
-            return { (left as! Double) - (right as! Double)}
-        } else if expr.binary_operator.type  == TokenType.PLUS {
-            if left is Double && right is Double {
-                return { (left as! Double) + (right as! Double)}
-            } else if left is String && right is String {
-                return { (left as! String) + (right as! String)}
+        if let left = left_optional{
+            if let right = right_optional {
+
+                switch expr.binary_operator.type {
+                    case .PLUS:
+                        if left is Double && right is Double {
+                            print("Visiting plus")
+                            print("left: \(left)")
+                            print("right: \(right)")
+                            let ret_val = (left as! Double) + (right as! Double)
+                            print("ret: \(ret_val)")
+                            return ret_val
+                        } else if left is String && right is String {
+                            return (left as! String) + (right as! String)
+                        }
+                    case .MINUS:
+                        try? checkNumberOperands(expr.binary_operator, left, right)
+                        return (left as! Double) - (right as! Double)
+                    case .SLASH:
+                        try? checkNumberOperands(expr.binary_operator, left, right)
+                        return (left as! Double) / (right as! Double)
+                    case .STAR:
+                        try? checkNumberOperands(expr.binary_operator, left, right)
+                        return (left as! Double) * (right as! Double)
+                    case .GREATER:
+                        try? checkNumberOperands(expr.binary_operator, left, right)
+                        return (left as! Double) > (right as! Double)
+                    case .GREATER_EQUAL:
+                        try? checkNumberOperands(expr.binary_operator, left, right)
+                        return (left as! Double) >= (right as! Double)
+                    case .LESS:
+                        try? checkNumberOperands(expr.binary_operator, left, right)
+                        return { (left as! Double) < (right as! Double)}
+                    case .LESS_EQUAL:
+                        try? checkNumberOperands(expr.binary_operator, left, right)
+                        return { (left as! Double) <= (right as! Double)}
+                    case .BANG_EQUAL:
+                        return !isEqual(left, right);
+                    case .EQUAL_EQUAL:
+                        return isEqual(left, right);
+                    default: break
+                }
+
             }
-
-        } else if expr.binary_operator.type  == TokenType.SLASH {
-            try? checkNumberOperands(expr.binary_operator, left, right)
-            return { (left as! Double) / (right as! Double)}
-        } else if expr.binary_operator.type  == TokenType.STAR {
-            try? checkNumberOperands(expr.binary_operator, left, right)
-            return { (left as! Double) * (right as! Double)}
-        } else if expr.binary_operator.type  == TokenType.GREATER{
-            try? checkNumberOperands(expr.binary_operator, left, right)
-                return { (left as! Double) > (right as! Double)}
-        } else if expr.binary_operator.type  == TokenType.GREATER_EQUAL{
-            try? checkNumberOperands(expr.binary_operator, left, right)
-                return { (left as! Double) >= (right as! Double)}
-        } else if expr.binary_operator.type  == TokenType.LESS{
-            try? checkNumberOperands(expr.binary_operator, left, right)
-                return { (left as! Double) < (right as! Double)}
-        } else if expr.binary_operator.type  == TokenType.LESS_EQUAL{
-            try? checkNumberOperands(expr.binary_operator, left, right)
-                return { (left as! Double) <= (right as! Double)}
-        } else if expr.binary_operator.type  == TokenType.BANG_EQUAL{
-            return !isEqual(left, right);
-        } else if expr.binary_operator.type  == TokenType.EQUAL_EQUAL{
-            return isEqual(left, right);
         }
         fatalError("Unreachable")
     }
