@@ -1,11 +1,14 @@
 
 
 class Interpreter: ExprVisitor, StmtVisitor {
+    final var globals: Environment = Environment()
+    private var environment: Environment
     typealias R = Any?
     init() {
+        self.environment = globals;
 
+        self.globals.define(name: "clock", value: Clock())
     }
-    var environment: Environment = Environment();
 
     @MainActor
     func interpret(statements: [Stmt]) {
@@ -112,6 +115,12 @@ class Interpreter: ExprVisitor, StmtVisitor {
         evaluate(stmt.expression)
     }
 
+    public func visitFunctionStmt(_ stmt: Stmt.Function) -> Any? {
+        let function: LoxFunction = LoxFunction(declaration: stmt, closure: environment)
+        environment.define(name: stmt.name.lexeme, value: function)
+        return nil
+    }
+
     public func visitIfStmt(_ stmt: Stmt.If) -> Any? {
         if (isTruthy(evaluate(stmt.condition))) {
             execute(stmt: stmt.thenBranch)
@@ -124,6 +133,12 @@ class Interpreter: ExprVisitor, StmtVisitor {
     public func visitPrintStmt(_ stmt: Stmt.Print) -> Any? {
         let value = evaluate(stmt.expression);
         print(stringify(value));
+        return nil
+    }
+
+    public func visitReturnStmt(_ stmt: Stmt.Return) throws -> Any? {
+        let value: LiteralValue = try evaluate(stmt.value) as! LiteralValue
+        throw Return(value)
         return nil
     }
 
@@ -195,6 +210,29 @@ class Interpreter: ExprVisitor, StmtVisitor {
         fatalError("Unreachable")
     }
 
+    public func visitCallExpr(_ expr: Expr.Call) throws -> Any? {
+        let callee: Any? = evaluate(expr.callee)
+
+        var arguments: [Any?] = []
+        for argument in expr.arguments {
+            arguments.append(evaluate(argument))
+        }
+
+        if let callee_is_string = callee as? String {
+            // TODO Definitely need to bug test this (Does it cast properly?)
+            let function: LoxCallable = callee as! LoxCallable
+            if (arguments.count != function.arity()) {
+                // TODO I don't really want to mark this method as throws, but I'm forced to because of this
+                //   Figure out a way to make this non-throws
+                throw RuntimeError(token: expr.paren, message: "Expected \(function.arity()) arguments got \(arguments.count).")
+            }
+            return function.call(self, arguments)
+        } else {
+            throw RuntimeError(token: expr.paren, message: "Can only call functions and classes")
+        }
+
+    }
+
     public func isEqual(_ left: Any?, _ right: Any?) -> Bool {
         if left == nil && right == nil {return true}
         if left == nil { return false }
@@ -211,10 +249,14 @@ class Interpreter: ExprVisitor, StmtVisitor {
 
     public func stringify(_ value: Any?) -> String {
         if value == nil { return "nil" }
-
-        if (value is Double) {
-            return String(format: "%f", value as! Double)
+        if let unwraped_value: Any = value {
+            if (unwraped_value is Double) {
+                return String(format: "%f", value as! Double)
+            }
+            return String(describing: unwraped_value)
         }
+
+
         return String(describing: value)
     }
 

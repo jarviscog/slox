@@ -25,6 +25,7 @@ class Parser {
     private func declaration() throws -> Stmt? {
         
         do {
+            if match(TokenType.FUN) { return try function("function") }
             if match(TokenType.VAR) { return try varDeclaration() }
             return try statement()
 
@@ -39,6 +40,7 @@ class Parser {
         if match(TokenType.FOR) { return try forStatement() };
         if match(TokenType.IF) { return try ifStatement() };
         if match(TokenType.PRINT) { return try printStatement() };
+        if match(TokenType.RETURN) { return try returnStatement() };
         if match(TokenType.WHILE) { return try whileStatement() };
         if match(TokenType.LEFT_BRACE) { return Stmt.Block(statements: try block()) };
 
@@ -75,7 +77,7 @@ class Parser {
         }
 
         if (condition == nil) {
-            condition = Expr.Literal(value: true)
+            condition = Expr.Literal(value: LiteralValue.bool(true))
         }
         body = Stmt.While(condition: condition!, body: body)
 
@@ -104,9 +106,20 @@ class Parser {
         return Stmt.Print(expression: value)
     }
 
+    private func returnStatement() throws -> Stmt {
+        let keyword: Token = previous()
+        var value: Expr? = nil
+        if (!check(TokenType.SEMICOLON)) {
+            value = try expression()
+        }
+        consume(TokenType.SEMICOLON, "Expect ';' after return value")
+        // TODO don't use '!'
+        return Stmt.Return(keyword: keyword, value: value!)
+    }
+
     private func varDeclaration() throws -> Stmt {
         let tokenName = consume(TokenType.IDENTIFIER, "Expect Variable Name");
-        var initializer: Expr = Expr.Literal(value: nil);
+        var initializer: Expr = Expr.Literal(value: LiteralValue.nil);
         if match(TokenType.EQUAL) {
             initializer = try expression();
         }
@@ -128,6 +141,26 @@ class Parser {
         let value: Expr = try expression();
         consume(TokenType.SEMICOLON, "Expect ';' after value.")
         return Stmt.Expression(expression: value)
+    }
+
+    private func function(_ kind: String) throws -> Stmt.Function {
+        let name: Token = consume(TokenType.IDENTIFIER, "Expect \(kind) name.")
+        consume(TokenType.LEFT_PAREN, "Expect '(' after \(kind) name.")
+        var params: [Token] = []
+        if !check(TokenType.RIGHT_PAREN) {
+            repeat {
+                if params.count >= 255 {
+                    error(peek(), "Cannot have more than 255 parameters")
+                }
+                params.append(consume(TokenType.IDENTIFIER, "Expect parameter name"))
+
+            } while match(TokenType.COMMA)
+
+        }
+        consume(TokenType.RIGHT_PAREN, "Expect '(' after parameters.")
+        consume(TokenType.LEFT_BRACE, "Expect '{' before \(kind) body.")
+        let body: [Stmt] = try block()
+        return Stmt.Function(name: name, params: params, body: body)
     }
 
     private func block() throws -> [Stmt] {
@@ -235,16 +268,49 @@ class Parser {
             let right: Expr = try self.unary();
             return Expr.Unary(unary_operator: unary_operator, right: right);
         }
-        return try self.primary()
+
+        return try call()
+    }
+
+    private func call() throws -> Expr {
+        var expr: Expr = try primary()
+
+        while (true) {
+            if match(TokenType.LEFT_PAREN) {
+                expr = try finishCall(callee: expr)
+            } else {
+                break
+            }
+        }
+        return expr
+    }
+
+    private func finishCall(callee: Expr) throws -> Expr {
+
+        var arguments: [Expr] = []
+        if (!check(TokenType.RIGHT_PAREN)) {
+            repeat {
+                if arguments.count >= 255 {
+                    error(peek(), "Can't have more than 255 arguments in a function call")
+                }
+                arguments.append(try expression())
+            } while match(TokenType.COMMA)
+        }
+        let paren: Token = consume(TokenType.RIGHT_PAREN, "Expect ')' after call arguments.")
+        return Expr.Call(callee: callee, paren: paren, arguments: arguments)
+
     }
 
     private func primary() throws -> Expr {
-        if self.match(TokenType.FALSE) { return Expr.Literal(value: TokenType.FALSE) }
-        if self.match(TokenType.TRUE) { return Expr.Literal(value: TokenType.TRUE) }
-        if self.match(TokenType.NIL) { return Expr.Literal(value: TokenType.NIL) }
+        if self.match(TokenType.FALSE) { return Expr.Literal(value: LiteralValue.bool(false)) }
+        if self.match(TokenType.TRUE) { return Expr.Literal(value: LiteralValue.bool(true)) }
+        if self.match(TokenType.NIL) { return Expr.Literal(value: LiteralValue.nil) }
 
-        if (self.match(TokenType.NUMBER, TokenType.STRING)) {
-            return Expr.Literal(value: self.previous().literal)
+        if (self.match(TokenType.NUMBER )) {
+            return Expr.Literal(value: LiteralValue.number(self.previous().literal as! Double))
+        }
+        if (self.match(TokenType.STRING )) {
+            return Expr.Literal(value: LiteralValue.string(self.previous().literal as! String))
         }
         if (self.match(TokenType.IDENTIFIER)) {
             return Expr.Variable(name: previous());

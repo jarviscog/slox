@@ -2,6 +2,7 @@ protocol ExprVisitor<R> {
   associatedtype R
   func visitAssignmentExpr(_ expr: Expr.Assignment) -> R;
   func visitBinaryExpr(_ expr: Expr.Binary) -> R;
+  func visitCallExpr(_ expr: Expr.Call) throws -> R;
   func visitGroupingExpr(_ expr: Expr.Grouping) -> R;
   func visitLiteralExpr(_ expr: Expr.Literal) -> R;
   func visitLogicalExpr(_ expr: Expr.Logical) -> R;
@@ -42,6 +43,21 @@ class Expr {
         let right: Expr;
     }
 
+    class Call: Expr {
+        init(callee: Expr, paren: Token, arguments: [Expr]) {
+            self.callee = callee
+            self.paren = paren
+            self.arguments = arguments
+        }
+
+        override func accept<V: ExprVisitor, R>(visitor: V) -> R where R == V.R {
+            return try! visitor.visitCallExpr(self);
+        }
+        let callee: Expr;
+        let paren: Token;
+        let arguments: [Expr];
+    }
+
     class Grouping: Expr {
         init(expression: Expr) {
             self.expression = expression
@@ -54,20 +70,20 @@ class Expr {
     }
 
     class Literal: Expr {
-        init(value: Any?) {
+        init(value: LiteralValue) {
             self.value = value
         }
 
         override func accept<V: ExprVisitor, R>(visitor: V) -> R where R == V.R {
             return visitor.visitLiteralExpr(self);
         }
-        let value: Any?;
+        let value: LiteralValue;
     }
 
     class Logical: Expr {
         init(left: Expr, logical_operator: Token, right: Expr) {
             self.left = left
-            self.logical_operator = logical_operator 
+            self.logical_operator = logical_operator
             self.right = right
         }
 

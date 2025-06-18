@@ -30,6 +30,10 @@ class AstPrinter: ExprVisitor {
         return String(describing: expr.name)
     }
 
+    func visitCallExpr(_ expr: Expr.Call) throws -> String {
+        return "call \(expr.callee) \(expr.arguments)"
+    }
+
     func visitLogicalExpr(_ expr: Expr.Logical) -> String {
         return "\(expr.left) \(expr.logical_operator) \(expr.right)"
     }

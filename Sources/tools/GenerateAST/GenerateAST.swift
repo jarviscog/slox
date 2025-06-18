@@ -20,6 +20,7 @@ struct GenerateAST {
         defineAst(outputDir: outputDir, baseName: "Expr", types: [
             "Assignment  - name: Token, value: Expr",
             "Binary      - left: Expr , binary_operator: Token , right: Expr ", // NOTE operator is a keyword in swift
+            "Call        - callee: Expr, paren: Token, arguments: [Expr]",
             "Grouping    - expression: Expr ",
             "Literal     - value: Any?",
             "Logical     - left: Expr, logical_operator: Token, right: Expr",
@@ -28,12 +29,14 @@ struct GenerateAST {
         ]);
 
         defineAst(outputDir: outputDir, baseName: "Stmt", types: [
-            "Block       -  statements: [Stmt]",
-            "Expression  -  expression: Expr",
-            "If          -  condition: Expr, thenBranch: Stmt, elseBranch: Stmt",
-            "Print       -  expression: Expr",
-            "Var         -  name: Token, initializer: Expr",
-            "While       -  condition: Expr, body: Stmt",
+            "Block       - statements: [Stmt]",
+            "Expression  - expression: Expr",
+            "Function    - name: Token, params: [Token], body: [Stmt]",
+            "If          - condition: Expr, thenBranch: Stmt, elseBranch: Stmt",
+            "Print       - expression: Expr",
+            "Return      - keyword: Token, value: Expr",
+            "Var         - name: Token, initializer: Expr",
+            "While       - condition: Expr, body: Stmt",
         ]);
     }
 
